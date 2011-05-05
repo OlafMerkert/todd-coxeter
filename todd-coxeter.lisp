@@ -59,12 +59,13 @@
     (setf relation-offsets
           (cumulative-sums (map 'vector #'length (cons nil relations))))))
 
+(defgeneric subgroup-offsets (tca))
 (defmethod subgroup-offsets ((tca tca))
   (with-slots (subgroup relation-offsets) tca
    (cumulative-sums (map 'vector #'length (cons nil subgroup))
                     (alast relation-offsets))))
 
-
+(defgeneric init-class (tca nr))
 (defmethod init-class ((tca tca) number)
   (let ((class (make-array (1+ (width tca))
                            :initial-element nil)))
@@ -75,6 +76,7 @@
            do (setf (aref class i) number)))
     class))
 
+(defgeneric fill-class (tca class))
 (defmethod fill-class ((tca tca) class)
   ;; Vorwärts füllen
   (loop for g across (header tca)
@@ -108,6 +110,7 @@
              ((not (eql b c))
               (identify tca b c))))))
 
+(defgeneric add-class (tca))
 (defmethod add-class ((tca tca))
   (with-slots (class-number classes) tca
     (let* ((nr (incf class-number))
@@ -117,6 +120,7 @@
                (print-table tca))
       nr)))
 
+(defgeneric identify (tca a b))
 (defmethod identify ((tca tca) a b)
   (with-slots (ident-queue) tca
     (unless (eql a b) (push (cons a b) ident-queue))
@@ -134,6 +138,7 @@
           (identify! tca a b)))
       (clear-ident-queue tca))))
 
+(defgeneric identify! (tca a b))
 (defmethod identify! ((tca tca) a b)
   (with-slots (classes mappings) tca
     ;; entferne Klasse
@@ -144,9 +149,12 @@
     (verbose (format t "Gleichsetzen: ~A = ~A~%" a b)
              (print-table tca))  
     ;; identifiziere in den Abbildungen
-    (maphash (lambda (k v) (identify-m tca v a b))
+    (maphash (lambda (k v)
+               (declare (ignorable k))
+               (identify-m tca v a b))
              mappings)))
 
+(defgeneric identify-m (tca m a b))
 (defmethod identify-m ((tca tca) (m mapping) a b)
   ;; Entferne alle Vorkommen von b
   (flet ((rpl (x) (if (eql x b) a x)))
@@ -183,6 +191,7 @@
       (clear-ident-queue tca)
       (fill-and-identify tca))))
 
+(defgeneric find-empty (tca))
 (defmethod find-empty ((tca tca))
   (with-slots (classes) tca
     (let ((p (some (lambda (c) (aif (position nil c)
@@ -194,6 +203,7 @@
                        (cdr p)) nr))
         t))))
 
+(defgeneric algorithm (tca))
 (defmethod algorithm ((tca tca))
   (do ()
       ((not (find-empty tca)))
@@ -215,6 +225,8 @@
       (loop for i in class-nrs and j from 1 do
            (identify tca j i)
            (fill-and-identify tca)))))|#
+
+(defgeneric print-table (obj))
 
 (defmethod print-table ((tca tca))
   (dolist (c (classes tca))
