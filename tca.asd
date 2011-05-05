@@ -4,4 +4,5 @@
     :components
     ((:file "package")
      (:file "mappings")
-     (:file "group")))
+     (:file "group")
+     (:file "todd-coxeter")))
