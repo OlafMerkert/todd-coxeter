@@ -59,40 +59,37 @@
     (setf relation-offsets
           (cumulative-sums (map 'vector #'length (cons nil relations))))))
 
-(defgeneric subgroup-offsets (tca))
-(defmethod subgroup-offsets ((tca tca))
+(defun subgroup-offsets (tca)
   (with-slots (subgroup relation-offsets) tca
-   (cumulative-sums (map 'vector #'length (cons nil subgroup))
-                    (alast relation-offsets))))
+    (cumulative-sums (map 'vector #'length (cons nil subgroup))
+                     (alast relation-offsets))))
 
-(defgeneric init-class (tca nr))
-(defmethod init-class ((tca tca) number)
+(defun init-class (tca number)
   (let ((class (make-array (1+ (width tca))
                            :initial-element nil)))
     (loop for i across (relation-offsets tca)
-         do (setf (aref class i) number))
+       do (setf (aref class i) number))
     (when (eql number 1)
       (loop for i across (subgroup-offsets tca)
-           do (setf (aref class i) number)))
+         do (setf (aref class i) number)))
     class))
 
-(defgeneric fill-class (tca class))
-(defmethod fill-class ((tca tca) class)
+(defun fill-class (tca class)
   ;; Vorwärts füllen
   (loop for g across (header tca)
      and i from 0 and j from 1
      for a = (aref class i)
      and b = (aref class j)
      when a do
-     (let ((c (image g a)))
-       (cond ((null c)) ; no image - do nothing
-             ((null b)
-              (setf (aref class j) c)
-              (verbose
-                "Einsetzen: Vorwärts"
-                (print-table tca)))
-             ((not (eql b c))
-              (identify tca b c)))))
+       (let ((c (image g a)))
+         (cond ((null c)) ; no image - do nothing
+               ((null b)
+                (setf (aref class j) c)
+                (verbose
+                 "Einsetzen: Vorwärts"
+                 (print-table tca)))
+               ((not (eql b c))
+                (identify tca b c)))))
   ;; Rückwärts füllen
   (loop for j from (1- (width tca)) downto 0
      and i from (width tca) downto 1
@@ -100,18 +97,17 @@
      for a = (aref class i)
      and b = (aref class j)
      when a do
-     (let ((c (preimage g a)))
-       (cond ((null c)) ; no preimage - do nothing
-             ((null b)
-              (setf (aref class j) c)
-              (verbose
-                "Einsetzen: Rückwärts"
-                (print-table tca)))
-             ((not (eql b c))
-              (identify tca b c))))))
+       (let ((c (preimage g a)))
+         (cond ((null c)) ; no preimage - do nothing
+               ((null b)
+                (setf (aref class j) c)
+                (verbose
+                 "Einsetzen: Rückwärts"
+                 (print-table tca)))
+               ((not (eql b c))
+                (identify tca b c))))))
 
-(defgeneric add-class (tca))
-(defmethod add-class ((tca tca))
+(defun add-class (tca)
   (with-slots (class-number classes) tca
     (let* ((nr (incf class-number))
            (class (init-class tca nr)))
@@ -120,8 +116,7 @@
                (print-table tca))
       nr)))
 
-(defgeneric identify (tca a b))
-(defmethod identify ((tca tca) a b)
+(defun identify (tca a b)
   (with-slots (ident-queue) tca
     (unless (eql a b) (push (cons a b) ident-queue))
     (values)))
@@ -138,8 +133,7 @@
           (identify! tca a b)))
       (clear-ident-queue tca))))
 
-(defgeneric identify! (tca a b))
-(defmethod identify! ((tca tca) a b)
+(defun identify! (tca a b)
   (with-slots (classes mappings) tca
     ;; entferne Klasse
     (setf classes (delete b classes :key (lambda (x) (aref x 0))))
@@ -154,8 +148,7 @@
                (identify-m tca v a b))
              mappings)))
 
-(defgeneric identify-m (tca m a b))
-(defmethod identify-m ((tca tca) (m mapping) a b)
+(defun identify-m (tca m a b)
   ;; Entferne alle Vorkommen von b
   (flet ((rpl (x) (if (eql x b) a x)))
     (let ((i-a (rpl (image m a)))
@@ -191,11 +184,10 @@
       (clear-ident-queue tca)
       (fill-and-identify tca))))
 
-(defgeneric find-empty (tca))
-(defmethod find-empty ((tca tca))
+(defun find-empty (tca)
   (with-slots (classes) tca
     (let ((p (some (lambda (c) (aif (position nil c)
-                                    (cons (1- it) (aref c (1- it)))))
+                               (cons (1- it) (aref c (1- it)))))
                    classes)))
       (when p       ; leeres Feld gefunden -> setze Wert der Abbildung
         (let ((nr (add-class tca)))
@@ -203,8 +195,7 @@
                        (cdr p)) nr))
         t))))
 
-(defgeneric algorithm (tca))
-(defmethod algorithm ((tca tca))
+(defun algorithm (tca)
   (do ()
       ((not (find-empty tca)))
     (fill-and-identify tca)))
@@ -218,7 +209,7 @@
     #|(renumber-classes tca)|#
     tca))
 
-#|(defmethod renumber-classes ((tca tca))
+#|(defun renumber-classes (tca)
   (with-slots (classes) tca
     ;; Sortiere Klassen aufsteigend nach Nummer
     (let ((class-nrs (sort (mapcar (lambda (c) (aref c 0)) classes) #'<)))
@@ -236,7 +227,7 @@
 (defmethod print-table ((c array))
   (format t "~{~2D~^  ~}~%" (map 'list (lambda (x) (if x x "  ")) c)))
 
-(defmethod print-generator-mappings ((tca tca))
+(defun print-generator-mappings ((tca tca))
   (maphash (lambda (k v)
              (format t "~A = " k)
              (print-cycles v))
