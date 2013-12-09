@@ -8,23 +8,23 @@
   (if (and (consp x) (eq '- (car x)))
       (cdr x)))
 
-(defmacro def-group-op (name var symbol inverse list)
+(defmacro def-group-op (name (var) symbol inverse list)
   `(defun ,name (,var)
      (cond ((symbolp ,var) ,symbol)
            ((i-p ,var) ,inverse)
            ((listp x) ,list))))
 
-(def-group-op i x
+(def-group-op i (x)
   (cons '- x)
   (cdr x)
   (reverse (mapcar #'i x)))
 
-(def-group-op gnorm x
+(def-group-op gnorm (x)
   (list x)
   (list x)
   x)
 
-(def-group-op gens x
+(def-group-op gens (x)
   x
   (cdr x)
   (remove-duplicates (mapcan (compose #'mklist #'gens) x)))
